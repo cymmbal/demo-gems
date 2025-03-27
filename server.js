@@ -7,8 +7,7 @@ const mimeTypes = {
     '.js': 'text/javascript',
     '.css': 'text/css',
     '.json': 'application/json',
-    '.gem': 'application/octet-stream',
-    '.png': 'image/png'
+    '.gem': 'application/octet-stream'
 };
 
 const server = http.createServer((req, res) => {
@@ -27,8 +26,8 @@ const server = http.createServer((req, res) => {
         req.url = '/index.html';
     }
 
-    // Remove /warp prefix from asset requests
-    let filePath = '.' + req.url.replace(/^\/warp\//, '/');
+    // Get the file path
+    let filePath = '.' + req.url.replace(/^\/warp\/\d+/, '');
     
     // Special handling for shared_js files
     if (filePath.includes('/shared_js/')) {
@@ -56,28 +55,12 @@ const server = http.createServer((req, res) => {
     fs.readFile(filePath, (error, content) => {
         if (error) {
             console.error('Error reading file:', filePath, error);
-            
-            // If file not found at current path, try without /warp prefix
-            if (error.code === 'ENOENT' && filePath.includes('/warp/')) {
-                const altPath = '.' + req.url.replace(/^\/warp\/[^\/]+\//, '/');
-                console.log('Trying alternate path:', altPath);
-                fs.readFile(altPath, (altError, altContent) => {
-                    if (altError) {
-                        res.writeHead(404);
-                        res.end('File not found');
-                    } else {
-                        res.writeHead(200, { 'Content-Type': contentType });
-                        res.end(altContent, 'utf-8');
-                    }
-                });
+            if(error.code == 'ENOENT') {
+                res.writeHead(404);
+                res.end('File not found');
             } else {
-                if(error.code === 'ENOENT') {
-                    res.writeHead(404);
-                    res.end('File not found');
-                } else {
-                    res.writeHead(500);
-                    res.end('Server error');
-                }
+                res.writeHead(500);
+                res.end('Server error');
             }
         } else {
             res.writeHead(200, { 'Content-Type': contentType });
