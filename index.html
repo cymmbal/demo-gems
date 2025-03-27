@@ -282,14 +282,20 @@
     </div>
 
     <div id="gem-container">
-        <!-- Empty container - gems will be added dynamically -->
+        <gem-player 
+            url="/assets/gems/aphex-twin-selected-ambient-works-ii.gem" 
+            artist="Aphex Twin" 
+            album="Selected Ambient Works Volume II" 
+            published="1994 Warp" 
+            style="background-color: #BEC3C9">
+        </gem-player>
     </div>
 
     <script>
         // Define the gems data
         const gems = {
             'flying-lotus': {
-                url: './assets/gems/flying-lotus-cosmogramma.gem',
+                url: '/assets/gems/flying-lotus-cosmogramma.gem',
                 artist: 'Flying Lotus',
                 album: 'Cosmogramma',
                 published: '2010 Warp',
@@ -297,7 +303,7 @@
                 textColor: '#f0f0f0'  // Light text on dark background
             },
             'aphex-twin': {
-                url: './assets/gems/aphex-twin-selected-ambient-works-ii.gem',
+                url: '/assets/gems/aphex-twin-selected-ambient-works-ii.gem',
                 artist: 'Aphex Twin',
                 album: 'Selected Ambient Works Volume II',
                 published: '1994 Warp',
@@ -305,7 +311,7 @@
                 textColor: 'rgba(0, 0, 0, 0.7)'  // Dark text on light background
             },
             'oneohtrix': {
-                url: './assets/gems/one-oh-trix-point-never-magic-otp.gem',
+                url: '/assets/gems/one-oh-trix-point-never-magic-otp.gem',
                 artist: 'Oneohtrix Point Never',
                 album: 'Magic Oneohtrix Point Never',
                 published: '2020 Warp',
@@ -339,26 +345,11 @@
                     return;
                 }
 
-                // Set initial colors
-                document.body.style.backgroundColor = gemData.bgColor;
-                document.body.style.color = gemData.textColor;
-
                 // Update button states
                 updateButtonStates(gemType);
 
                 // Store the selected gem type
                 localStorage.setItem('selectedGem', gemType);
-
-                // Update URL based on gem type
-                const urlMap = {
-                    'aphex-twin': '/warp/21',
-                    'flying-lotus': '/warp/195',
-                    'oneohtrix': '/warp/318'
-                };
-                const newUrl = urlMap[gemType];
-                if (newUrl && window.location.pathname !== newUrl) {
-                    window.history.pushState({}, '', newUrl);
-                }
 
                 // Update gem player
                 const container = document.getElementById('gem-container');
@@ -390,13 +381,12 @@
                     return;
                 }
 
-                // Get the current gem-player
-                const currentPlayer = document.querySelector('gem-player');
-                if (!currentPlayer) {
-                    console.error('No current gem-player found');
-                    return;
-                }
+                // Update button states
+                updateButtonStates(gemType);
 
+                // Store the selected gem type
+                localStorage.setItem('selectedGem', gemType);
+                
                 // Update URL based on gem type
                 const urlMap = {
                     'aphex-twin': '/warp/21',
@@ -404,27 +394,34 @@
                     'oneohtrix': '/warp/318'
                 };
                 const newUrl = urlMap[gemType];
-                if (newUrl && window.location.pathname !== newUrl) {
+                if (newUrl) {
                     window.history.pushState({}, '', newUrl);
                 }
-
+                
+                // Get the current gem-player
+                const currentPlayer = document.querySelector('gem-player');
+                if (!currentPlayer) {
+                    console.error('No gem-player found');
+                    return;
+                }
+                
+                // Set overlay to match the new background color
+                transitionOverlay.style.backgroundColor = gemData.bgColor;
+                document.body.style.backgroundColor = gemData.bgColor;
+                document.body.style.color = gemData.textColor;
+                
                 // Fade out current content
                 currentPlayer.classList.add('fade-out');
                 transitionOverlay.classList.add('active');
-                transitionOverlay.style.backgroundColor = gemData.bgColor;
 
-                // Wait longer for fade out and resource cleanup
-                await new Promise(resolve => setTimeout(resolve, 800));
+                // Wait for fade out
+                await new Promise(resolve => setTimeout(resolve, 500));
 
                 // Clean up any existing text overlays
                 const existingOverlays = document.querySelectorAll('.text-overlay');
                 existingOverlays.forEach(overlay => overlay.remove());
 
                 try {
-                    // Update colors
-                    document.body.style.backgroundColor = gemData.bgColor;
-                    document.body.style.color = gemData.textColor;
-
                     // Create a new gem-player element
                     const container = document.getElementById('gem-container');
                     container.innerHTML = `
@@ -443,14 +440,14 @@
                         player.addEventListener('sceneerror', (event) => {
                             console.error('Scene error:', event.detail.error);
                         });
-
-                        // Wait for the scene to be fully loaded before fading in
-                        player.addEventListener('sceneloaded', () => {
-                            // Fade in new content
-                            transitionOverlay.classList.remove('active');
-                            player.classList.remove('fade-out');
-                        });
                     }
+                    
+                    // Wait a brief moment for the new content to initialize
+                    await new Promise(resolve => setTimeout(resolve, 200));
+
+                    // Fade in new content
+                    transitionOverlay.classList.remove('active');
+                    player.classList.remove('fade-out');
                 } catch (error) {
                     console.error('Error switching gem:', error);
                     transitionOverlay.classList.remove('active');
@@ -474,22 +471,15 @@
             // Initialize with URL-based gem or default to aphex-twin
             const initialGem = getInitialGemType();
             console.log('Initial gem from URL:', initialGem);
-            initializeGem(initialGem);
-
+            initializeGem(initialGem);  // Use the non-animated initialization
+            
             // Add click handlers to buttons
             buttons.forEach(button => {
                 button.addEventListener('click', function() {
                     const gemType = this.getAttribute('data-gem');
                     console.log('Button clicked, switching to gem:', gemType);
-                    switchGem(gemType);
+                    switchGem(gemType);  // Use the animated transition for clicks
                 });
-            });
-
-            // Handle browser back/forward buttons
-            window.addEventListener('popstate', function() {
-                const newGemType = getInitialGemType();
-                console.log('URL changed, switching to gem:', newGemType);
-                switchGem(newGemType);
             });
         });
     </script>

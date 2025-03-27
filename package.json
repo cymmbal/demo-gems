@@ -4,17 +4,10 @@
   "description": "3D Gem Viewer",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "start:prod": "NODE_ENV=production node server.js",
-    "dev": "nodemon server.js"
+    "start": "node server.js"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=14.0.0"
   },
-  "license": "MIT",
-  "dependencies": {
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.1"
-  }
+  "license": "MIT"
 } 

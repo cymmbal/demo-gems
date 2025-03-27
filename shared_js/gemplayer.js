@@ -68,7 +68,7 @@ export class GemPlayer extends HTMLElement {
 		// DriftControl values
 
 		// Maximum rotation amount in all directions for drift contro, in degrees
-		MAX_ROTATION_DRIFT: 12,
+		MAX_ROTATION_DRIFT: 5,
 
 		// Whether to invert the direction of drift control
 		INVERT_ROTATION_DRIFT: true,
