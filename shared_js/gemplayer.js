@@ -36,7 +36,7 @@ export class GemPlayer extends HTMLElement {
 		// General timing values
 
 		// Time to wait between when the scene starts and when the fade-in starts in milliseconds
-        FADE_IN_DELAY: 500,
+        FADE_IN_DELAY: 300,
 
 		// Time to wait to commit browser resize to layout values in milliseconds
         DEBOUNCE_DELAY: 100,
