@@ -414,8 +414,8 @@
                 currentPlayer.classList.add('fade-out');
                 transitionOverlay.classList.add('active');
 
-                // Wait for fade out
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Wait longer for fade out and resource cleanup
+                await new Promise(resolve => setTimeout(resolve, 800));
 
                 // Clean up any existing text overlays
                 const existingOverlays = document.querySelectorAll('.text-overlay');
@@ -440,14 +440,14 @@
                         player.addEventListener('sceneerror', (event) => {
                             console.error('Scene error:', event.detail.error);
                         });
-                    }
-                    
-                    // Wait a brief moment for the new content to initialize
-                    await new Promise(resolve => setTimeout(resolve, 200));
 
-                    // Fade in new content
-                    transitionOverlay.classList.remove('active');
-                    player.classList.remove('fade-out');
+                        // Wait for the scene to be fully loaded before fading in
+                        player.addEventListener('sceneloaded', () => {
+                            // Fade in new content
+                            transitionOverlay.classList.remove('active');
+                            player.classList.remove('fade-out');
+                        });
+                    }
                 } catch (error) {
                     console.error('Error switching gem:', error);
                     transitionOverlay.classList.remove('active');
