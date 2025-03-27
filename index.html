@@ -151,7 +151,7 @@
         /* Fade-in transition for canvas */
         .gem-canvas {
             opacity: 0;
-            transition: opacity 0.3s ease-out;
+            transition: opacity 0.8s ease-in-out;
         }
         
         .gem-canvas.loaded {
@@ -170,7 +170,6 @@
             z-index: 20;
             animation: fadeIn 1s ease-in-out forwards;
             opacity: 0;
-            color: inherit;
         }
 
         @keyframes fadeIn {
@@ -184,7 +183,6 @@
 
         .text-overlay div {
             font-size: 1em;
-            color: inherit;
         }
         
         .artist-name {
@@ -192,14 +190,12 @@
             font-weight: 500;
             margin-bottom: -0.2em;
             opacity: 0.8;
-            color: inherit;
         }
         
         .album-title {
             font-size: 1em !important;
             font-weight: 300;
             opacity: 0.4;
-            color: inherit;
         }
 
         .published {
@@ -211,7 +207,6 @@
             font-size: 0.74em !important;
             opacity: 0.4;
             margin-left: 2em;
-            color: inherit;
         }
 
 		#panel-overlay {
@@ -287,14 +282,14 @@
     </div>
 
     <div id="gem-container">
-        <!-- Remove the initial gem-player element since we'll create it dynamically -->
+        <!-- Empty container - gems will be added dynamically -->
     </div>
 
     <script>
         // Define the gems data
         const gems = {
             'flying-lotus': {
-                url: '/assets/gems/flying-lotus-cosmogramma.gem',
+                url: './assets/gems/flying-lotus-cosmogramma.gem',
                 artist: 'Flying Lotus',
                 album: 'Cosmogramma',
                 published: '2010 Warp',
@@ -302,7 +297,7 @@
                 textColor: '#f0f0f0'  // Light text on dark background
             },
             'aphex-twin': {
-                url: '/assets/gems/aphex-twin-selected-ambient-works-ii.gem',
+                url: './assets/gems/aphex-twin-selected-ambient-works-ii.gem',
                 artist: 'Aphex Twin',
                 album: 'Selected Ambient Works Volume II',
                 published: '1994 Warp',
@@ -310,7 +305,7 @@
                 textColor: 'rgba(0, 0, 0, 0.7)'  // Dark text on light background
             },
             'oneohtrix': {
-                url: '/assets/gems/one-oh-trix-point-never-magic-otp.gem',
+                url: './assets/gems/one-oh-trix-point-never-magic-otp.gem',
                 artist: 'Oneohtrix Point Never',
                 album: 'Magic Oneohtrix Point Never',
                 published: '2020 Warp',
@@ -335,6 +330,57 @@
                 });
             }
 
+            // Function to initialize the first gem without animation
+            function initializeGem(gemType) {
+                console.log('Initializing gem:', gemType);
+                const gemData = gems[gemType];
+                if (!gemData) {
+                    console.error('No data found for gem:', gemType);
+                    return;
+                }
+
+                // Set initial colors
+                document.body.style.backgroundColor = gemData.bgColor;
+                document.body.style.color = gemData.textColor;
+
+                // Update button states
+                updateButtonStates(gemType);
+
+                // Store the selected gem type
+                localStorage.setItem('selectedGem', gemType);
+
+                // Update URL based on gem type
+                const urlMap = {
+                    'aphex-twin': '/warp/21',
+                    'flying-lotus': '/warp/195',
+                    'oneohtrix': '/warp/318'
+                };
+                const newUrl = urlMap[gemType];
+                if (newUrl && window.location.pathname !== newUrl) {
+                    window.history.pushState({}, '', newUrl);
+                }
+
+                // Update gem player
+                const container = document.getElementById('gem-container');
+                container.innerHTML = `
+                    <gem-player 
+                        url="${gemData.url}"
+                        artist="${gemData.artist}"
+                        album="${gemData.album}"
+                        published="${gemData.published}"
+                        style="background-color: ${gemData.bgColor}">
+                    </gem-player>
+                `;
+
+                // Add error event listener to the new gem-player
+                const player = container.querySelector('gem-player');
+                if (player) {
+                    player.addEventListener('sceneerror', (event) => {
+                        console.error('Scene error:', event.detail.error);
+                    });
+                }
+            }
+
             // Function to switch gems with transition animation
             async function switchGem(gemType) {
                 console.log('Switching to gem:', gemType);
@@ -349,6 +395,17 @@
                 if (!currentPlayer) {
                     console.error('No current gem-player found');
                     return;
+                }
+
+                // Update URL based on gem type
+                const urlMap = {
+                    'aphex-twin': '/warp/21',
+                    'flying-lotus': '/warp/195',
+                    'oneohtrix': '/warp/318'
+                };
+                const newUrl = urlMap[gemType];
+                if (newUrl && window.location.pathname !== newUrl) {
+                    window.history.pushState({}, '', newUrl);
                 }
 
                 // Fade out current content
@@ -367,11 +424,6 @@
                     // Update colors
                     document.body.style.backgroundColor = gemData.bgColor;
                     document.body.style.color = gemData.textColor;
-                    
-                    // Update text colors for all text elements
-                    document.querySelectorAll('.artist-name, .album-title, .published').forEach(el => {
-                        el.style.color = gemData.textColor;
-                    });
 
                     // Create a new gem-player element
                     const container = document.getElementById('gem-container');
@@ -405,51 +457,6 @@
                 }
             }
 
-            // Function to initialize the first gem without animation
-            function initializeGem(gemType) {
-                console.log('Initializing gem:', gemType);
-                const gemData = gems[gemType];
-                if (!gemData) {
-                    console.error('No data found for gem:', gemType);
-                    return;
-                }
-
-                // Set initial colors
-                document.body.style.backgroundColor = gemData.bgColor;
-                document.body.style.color = gemData.textColor;
-
-                // Update text colors for all text elements
-                document.querySelectorAll('.artist-name, .album-title, .published').forEach(el => {
-                    el.style.color = gemData.textColor;
-                });
-
-                // Update button states
-                updateButtonStates(gemType);
-
-                // Store the selected gem type
-                localStorage.setItem('selectedGem', gemType);
-
-                // Update gem player
-                const container = document.getElementById('gem-container');
-                container.innerHTML = `
-                    <gem-player 
-                        url="${gemData.url}"
-                        artist="${gemData.artist}"
-                        album="${gemData.album}"
-                        published="${gemData.published}"
-                        style="background-color: ${gemData.bgColor}">
-                    </gem-player>
-                `;
-
-                // Add error event listener to the new gem-player
-                const player = container.querySelector('gem-player');
-                if (player) {
-                    player.addEventListener('sceneerror', (event) => {
-                        console.error('Scene error:', event.detail.error);
-                    });
-                }
-            }
-
             // Function to get initial gem type from URL
             function getInitialGemType() {
                 const match = window.location.pathname.match(/\/warp\/(\d+)/);
@@ -467,15 +474,22 @@
             // Initialize with URL-based gem or default to aphex-twin
             const initialGem = getInitialGemType();
             console.log('Initial gem from URL:', initialGem);
-            initializeGem(initialGem);  // Use the non-animated initialization
-            
+            initializeGem(initialGem);
+
             // Add click handlers to buttons
             buttons.forEach(button => {
                 button.addEventListener('click', function() {
                     const gemType = this.getAttribute('data-gem');
                     console.log('Button clicked, switching to gem:', gemType);
-                    switchGem(gemType);  // Use the animated transition for clicks
+                    switchGem(gemType);
                 });
+            });
+
+            // Handle browser back/forward buttons
+            window.addEventListener('popstate', function() {
+                const newGemType = getInitialGemType();
+                console.log('URL changed, switching to gem:', newGemType);
+                switchGem(newGemType);
             });
         });
     </script>
