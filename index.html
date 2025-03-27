@@ -170,6 +170,7 @@
             z-index: 20;
             animation: fadeIn 1s ease-in-out forwards;
             opacity: 0;
+            color: inherit;
         }
 
         @keyframes fadeIn {
@@ -183,6 +184,7 @@
 
         .text-overlay div {
             font-size: 1em;
+            color: inherit;
         }
         
         .artist-name {
@@ -190,12 +192,14 @@
             font-weight: 500;
             margin-bottom: -0.2em;
             opacity: 0.8;
+            color: inherit;
         }
         
         .album-title {
             font-size: 1em !important;
             font-weight: 300;
             opacity: 0.4;
+            color: inherit;
         }
 
         .published {
@@ -207,6 +211,7 @@
             font-size: 0.74em !important;
             opacity: 0.4;
             margin-left: 2em;
+            color: inherit;
         }
 
 		#panel-overlay {
@@ -330,46 +335,6 @@
                 });
             }
 
-            // Function to initialize the first gem without animation
-            function initializeGem(gemType) {
-                console.log('Initializing gem:', gemType);
-                const gemData = gems[gemType];
-                if (!gemData) {
-                    console.error('No data found for gem:', gemType);
-                    return;
-                }
-
-                // Set initial colors
-                document.body.style.backgroundColor = gemData.bgColor;
-                document.body.style.color = gemData.textColor;
-
-                // Update button states
-                updateButtonStates(gemType);
-
-                // Store the selected gem type
-                localStorage.setItem('selectedGem', gemType);
-
-                // Update gem player
-                const container = document.getElementById('gem-container');
-                container.innerHTML = `
-                    <gem-player 
-                        url="${gemData.url}"
-                        artist="${gemData.artist}"
-                        album="${gemData.album}"
-                        published="${gemData.published}"
-                        style="background-color: ${gemData.bgColor}">
-                    </gem-player>
-                `;
-
-                // Add error event listener to the new gem-player
-                const player = container.querySelector('gem-player');
-                if (player) {
-                    player.addEventListener('sceneerror', (event) => {
-                        console.error('Scene error:', event.detail.error);
-                    });
-                }
-            }
-
             // Function to switch gems with transition animation
             async function switchGem(gemType) {
                 console.log('Switching to gem:', gemType);
@@ -379,38 +344,17 @@
                     return;
                 }
 
-                // Update button states
-                updateButtonStates(gemType);
-
-                // Store the selected gem type
-                localStorage.setItem('selectedGem', gemType);
-                
-                // Update URL based on gem type
-                const urlMap = {
-                    'aphex-twin': '/warp/21',
-                    'flying-lotus': '/warp/195',
-                    'oneohtrix': '/warp/318'
-                };
-                const newUrl = urlMap[gemType];
-                if (newUrl) {
-                    window.history.pushState({}, '', newUrl);
-                }
-                
                 // Get the current gem-player
                 const currentPlayer = document.querySelector('gem-player');
                 if (!currentPlayer) {
-                    console.error('No gem-player found');
+                    console.error('No current gem-player found');
                     return;
                 }
-                
-                // Set overlay to match the new background color
-                transitionOverlay.style.backgroundColor = gemData.bgColor;
-                document.body.style.backgroundColor = gemData.bgColor;
-                document.body.style.color = gemData.textColor;
-                
+
                 // Fade out current content
                 currentPlayer.classList.add('fade-out');
                 transitionOverlay.classList.add('active');
+                transitionOverlay.style.backgroundColor = gemData.bgColor;
 
                 // Wait longer for fade out and resource cleanup
                 await new Promise(resolve => setTimeout(resolve, 800));
@@ -420,6 +364,15 @@
                 existingOverlays.forEach(overlay => overlay.remove());
 
                 try {
+                    // Update colors
+                    document.body.style.backgroundColor = gemData.bgColor;
+                    document.body.style.color = gemData.textColor;
+                    
+                    // Update text colors for all text elements
+                    document.querySelectorAll('.artist-name, .album-title, .published').forEach(el => {
+                        el.style.color = gemData.textColor;
+                    });
+
                     // Create a new gem-player element
                     const container = document.getElementById('gem-container');
                     container.innerHTML = `
@@ -449,6 +402,51 @@
                 } catch (error) {
                     console.error('Error switching gem:', error);
                     transitionOverlay.classList.remove('active');
+                }
+            }
+
+            // Function to initialize the first gem without animation
+            function initializeGem(gemType) {
+                console.log('Initializing gem:', gemType);
+                const gemData = gems[gemType];
+                if (!gemData) {
+                    console.error('No data found for gem:', gemType);
+                    return;
+                }
+
+                // Set initial colors
+                document.body.style.backgroundColor = gemData.bgColor;
+                document.body.style.color = gemData.textColor;
+
+                // Update text colors for all text elements
+                document.querySelectorAll('.artist-name, .album-title, .published').forEach(el => {
+                    el.style.color = gemData.textColor;
+                });
+
+                // Update button states
+                updateButtonStates(gemType);
+
+                // Store the selected gem type
+                localStorage.setItem('selectedGem', gemType);
+
+                // Update gem player
+                const container = document.getElementById('gem-container');
+                container.innerHTML = `
+                    <gem-player 
+                        url="${gemData.url}"
+                        artist="${gemData.artist}"
+                        album="${gemData.album}"
+                        published="${gemData.published}"
+                        style="background-color: ${gemData.bgColor}">
+                    </gem-player>
+                `;
+
+                // Add error event listener to the new gem-player
+                const player = container.querySelector('gem-player');
+                if (player) {
+                    player.addEventListener('sceneerror', (event) => {
+                        console.error('Scene error:', event.detail.error);
+                    });
                 }
             }
 
