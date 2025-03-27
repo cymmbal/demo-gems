@@ -31,42 +31,18 @@ const server = http.createServer((req, res) => {
     
     // Special handling for shared_js files
     if (filePath.includes('/shared_js/')) {
-        // Convert the filename to the correct case
-        const filename = path.basename(filePath);
-        const dirname = path.dirname(filePath);
-        
-        // Map of correct filenames
-        const fileMap = {
-            'baseviewmodel.js': 'BaseViewModel.js',
-            'cameraviewmodel.js': 'CameraViewModel.js',
-            'driftcontrol.js': 'DriftControl.js',
-            'gemviewmodel.js': 'GemViewModel.js',
-            'gemplayer.js': 'GemPlayer.js',
-            'rotationcontrol.js': 'RotationControl.js',
-            'router.js': 'Router.js',
-            'runtime.js': 'runtime.js',
-            'themecolor.js': 'ThemeColor.js',
-            'themecontent.js': 'ThemeContent.js',
-            'viewstate.js': 'ViewState.js',
-            'zoomcontrol.js': 'ZoomControl.js'
-        };
-
-        const correctFilename = fileMap[filename.toLowerCase()] || filename;
-        filePath = path.join('.', 'shared_js', correctFilename);
-        
-        // Log the resolved path
-        console.log('Resolved path:', filePath);
-        
-        // Check if file exists
-        if (!fs.existsSync(filePath)) {
-            console.log('File not found at:', filePath);
-            // Try alternate path
-            const alternatePath = path.join('.', 'gem-viewer', 'src', 'shared_js', correctFilename);
-            console.log('Trying alternate path:', alternatePath);
-            if (fs.existsSync(alternatePath)) {
-                filePath = alternatePath;
-                console.log('Found file at alternate path');
+        // Try to find the actual file with correct case
+        const dir = './shared_js';
+        try {
+            const files = fs.readdirSync(dir);
+            const requestedFile = path.basename(filePath).toLowerCase();
+            const matchingFile = files.find(f => f.toLowerCase() === requestedFile);
+            if (matchingFile) {
+                filePath = path.join(dir, matchingFile);
+                console.log('Found matching file:', filePath);
             }
+        } catch (err) {
+            console.log('Error reading shared_js directory:', err);
         }
     }
 
