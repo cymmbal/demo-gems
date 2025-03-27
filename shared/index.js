@@ -1,6 +1,15 @@
 // Import GemPlayer class to ensure it's registered
-import '../shared_js/GemPlayer.js';
-import { Router } from '../shared_js/Router.js';
+import { GemPlayer } from '../shared_js/gemplayer.js';
+import { Router } from '../shared_js/router.js';
+import { CameraViewModel } from '../shared_js/cameraviewmodel.js';
+import { ViewState } from '../shared_js/viewstate.js';
+import { GemViewModel } from '../shared_js/gemviewmodel.js';
+import { DriftControl } from '../shared_js/driftcontrol.js';
+import { ZoomControl } from '../shared_js/zoomcontrol.js';
+import { ThemeColor } from '../shared_js/themecolor.js';
+import { ThemeContent } from '../shared_js/themecontent.js';
+import { RotationControl } from '../shared_js/rotationcontrol.js';
+import { BaseViewModel } from '../shared_js/baseviewmodel.js';
 
 // No need for additional initialization, the custom element handles everything
 document.addEventListener('DOMContentLoaded', () => {

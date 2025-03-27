@@ -1,13 +1,13 @@
 // Import from local file instead of CDN
 import { Application } from './runtime.js';
-import { CameraViewModel } from './CameraViewModel.js';
-import { GemViewModel } from './GemViewModel.js';
-import { ViewState } from './ViewState.js';
-import { ZoomControl } from './ZoomControl.js';
-import { DriftControl } from './DriftControl.js';
-import { RotationControl } from './RotationControl.js';
-import { ThemeColor } from './ThemeColor.js';
-import { ThemeContent } from './ThemeContent.js';
+import { CameraViewModel } from './cameraviewmodel.js';
+import { GemViewModel } from './gemviewmodel.js';
+import { ViewState } from './viewstate.js';
+import { ZoomControl } from './zoomcontrol.js';
+import { DriftControl } from './driftcontrol.js';
+import { RotationControl } from './rotationcontrol.js';
+import { ThemeColor } from './themecolor.js';
+import { ThemeContent } from './themecontent.js';
 
 /**
  * GemPlayer - Custom Element for embedding Gems
