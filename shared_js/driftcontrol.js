@@ -16,12 +16,14 @@ export class DriftControl {
         this.enabled = true;
         this._driftHandler = null;
         this._motionHandler = null;
+        this._orientationHandler = null;
         this._permissionOverlay = null;
         
         // Motion control state
-        this.identityRotation = null;
+        this.initialOrientation = null;
         this.maxRotationAngle = 45; // Maximum physical device rotation to map to maxRotationDrift
         this.hasMotionPermission = localStorage.getItem('motionPermissionGranted') === 'true';
+        this.screenOrientation = window.orientation || 0;
 
         // Orbit control state for desktop
         this.orbitControl = {
@@ -104,19 +106,25 @@ export class DriftControl {
      * Initialize drift control
      */
     init() {
-        if (this.isIOS) {
-            if (typeof DeviceMotionEvent?.requestPermission === 'function') {
+        if (this.isIOS || /Android/i.test(navigator.userAgent)) {
+            if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
                 if (!this.hasMotionPermission) {
                     console.log('Showing permission overlay - no permission yet');
                     this.createPermissionOverlay();
                 } else {
-                    console.log('Permission already granted, initializing motion handler');
-                    this.initMotionHandler();
+                    console.log('Permission already granted, initializing orientation handler');
+                    this.initOrientationHandler();
                 }
             } else {
-                console.log('No permission needed, initializing motion handler directly');
-                this.initMotionHandler();
+                console.log('No permission needed, initializing orientation handler directly');
+                this.initOrientationHandler();
             }
+
+            // Listen for screen orientation changes
+            window.addEventListener('orientationchange', () => {
+                this.screenOrientation = window.orientation || 0;
+                this.initialOrientation = null; // Reset calibration on orientation change
+            });
         } else {
             // Create bound handler that we can reference later for cleanup
             this._driftHandler = (e) => {
@@ -143,12 +151,12 @@ export class DriftControl {
 
         const requestMotionPermission = async () => {
             try {
-                const permissionState = await window.DeviceMotionEvent.requestPermission();
+                const permissionState = await DeviceOrientationEvent.requestPermission();
                 console.log('Permission response:', permissionState);
                 if (permissionState === 'granted') {
                     localStorage.setItem('motionPermissionGranted', 'true');
                     this.hasMotionPermission = true;
-                    this.initMotionHandler();
+                    this.initOrientationHandler();
                 }
             } catch (error) {
                 console.error('Error requesting motion permission:', error);
@@ -172,69 +180,68 @@ export class DriftControl {
     }
 
     /**
-     * Initialize motion handler for iOS
+     * Initialize orientation handler for mobile devices
      */
-    initMotionHandler() {
-        // Clean up any existing motion handler
-        if (this._motionHandler) {
-            window.removeEventListener('devicemotion', this._motionHandler);
+    initOrientationHandler() {
+        // Clean up any existing handlers
+        if (this._orientationHandler) {
+            window.removeEventListener('deviceorientation', this._orientationHandler);
         }
 
-        // Create new motion handler
-        this._motionHandler = (e) => {
+        // Create new orientation handler
+        this._orientationHandler = (e) => {
             if (!this.enabled) return;
             
-            // Get rotation rate data
-            const rotationRate = e.rotationRate;
-            if (!rotationRate) return;
+            // Get orientation data
+            const { beta, gamma } = e;
+            if (beta === null || gamma === null) return;
             
-            // Initialize identity rotation if needed
-            if (!this.identityRotation && rotationRate.beta && rotationRate.gamma) {
-                this.identityRotation = {
-                    beta: rotationRate.beta,
-                    gamma: rotationRate.gamma
-                };
+            // Initialize reference orientation if needed
+            if (!this.initialOrientation) {
+                this.initialOrientation = { beta, gamma };
                 return;
             }
             
-            if (this.identityRotation && rotationRate.beta && rotationRate.gamma) {
-                // Calculate deltas from identity
-                const deltaX = (rotationRate.gamma - this.identityRotation.gamma) / this.maxRotationAngle;
-                const deltaY = (rotationRate.beta - this.identityRotation.beta) / this.maxRotationAngle;
-                
-                // Apply rotations with deltas clamped to -1 to 1
-                this.applyNormalizedRotations(
-                    Math.max(-1, Math.min(1, deltaX)),
-                    Math.max(-1, Math.min(1, deltaY))
-                );
+            // Calculate relative rotation from initial position
+            let deltaGamma = gamma - this.initialOrientation.gamma;
+            let deltaBeta = beta - this.initialOrientation.beta;
+            
+            // Adjust for screen orientation
+            if (this.screenOrientation === 90) {
+                [deltaGamma, deltaBeta] = [-deltaBeta, deltaGamma];
+            } else if (this.screenOrientation === -90) {
+                [deltaGamma, deltaBeta] = [deltaBeta, -deltaGamma];
+            } else if (this.screenOrientation === 180) {
+                [deltaGamma, deltaBeta] = [-deltaGamma, -deltaBeta];
             }
+            
+            // Normalize rotations to our desired range
+            const horizontalValue = Math.max(-1, Math.min(1, deltaGamma / this.maxRotationAngle));
+            const verticalValue = Math.max(-1, Math.min(1, deltaBeta / this.maxRotationAngle));
+            
+            // Apply the normalized rotations
+            this.applyNormalizedRotations(horizontalValue, verticalValue);
         };
 
-        // Simply add the event listener - permission should be granted at this point
-        window.addEventListener('devicemotion', this._motionHandler);
+        // Bind the handler
+        window.addEventListener('deviceorientation', this._orientationHandler);
     }
 
     /**
-     * Clean up event listeners and handlers
+     * Clean up event listeners
      */
     cleanup() {
         if (this._driftHandler) {
             this.canvas.removeEventListener('pointermove', this._driftHandler);
             this._driftHandler = null;
         }
-        if (this._motionHandler) {
-            window.removeEventListener('devicemotion', this._motionHandler);
-            this._motionHandler = null;
-        }
-        // Reset identity rotation when cleaning up
-        this.identityRotation = null;
         
-        // Remove permission overlay if it exists
-        if (this._permissionOverlay) {
-            this._permissionOverlay.style.visibility = 'hidden';
-            this._permissionOverlay.style.opacity = '0';
-            this._permissionOverlay.style.pointerEvents = 'none';
+        if (this._orientationHandler) {
+            window.removeEventListener('deviceorientation', this._orientationHandler);
+            this._orientationHandler = null;
         }
+
+        window.removeEventListener('orientationchange', this._orientationChangeHandler);
     }
 
     /**
@@ -242,9 +249,9 @@ export class DriftControl {
      */
     setEnabled(enabled) {
         this.enabled = enabled;
-        if (enabled && this.isIOS && !this.identityRotation) {
+        if (enabled && this.isIOS && !this.initialOrientation) {
             // Re-initialize identity when re-enabling
-            this.identityRotation = null;
+            this.initialOrientation = null;
         }
     }
 
