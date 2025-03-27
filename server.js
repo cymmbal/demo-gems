@@ -7,7 +7,8 @@ const mimeTypes = {
     '.js': 'text/javascript',
     '.css': 'text/css',
     '.json': 'application/json',
-    '.gem': 'application/octet-stream'
+    '.gem': 'application/octet-stream',
+    '.png': 'image/png'
 };
 
 const server = http.createServer((req, res) => {
@@ -26,8 +27,11 @@ const server = http.createServer((req, res) => {
         req.url = '/index.html';
     }
 
-    // Get the file path
-    let filePath = '.' + req.url.replace(/^\/warp\/\d+/, '');
+    // Get the file path, removing any /warp/ prefix from non-HTML requests
+    let filePath = '.' + req.url;
+    if (!req.url.endsWith('.html')) {
+        filePath = '.' + req.url.replace(/^\/warp\//, '/');
+    }
     
     // Special handling for shared_js files
     if (filePath.includes('/shared_js/')) {
