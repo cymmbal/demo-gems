@@ -52,7 +52,22 @@ const server = http.createServer((req, res) => {
         };
 
         const correctFilename = fileMap[filename.toLowerCase()] || filename;
-        filePath = path.join(dirname, correctFilename);
+        filePath = path.join('.', 'shared_js', correctFilename);
+        
+        // Log the resolved path
+        console.log('Resolved path:', filePath);
+        
+        // Check if file exists
+        if (!fs.existsSync(filePath)) {
+            console.log('File not found at:', filePath);
+            // Try alternate path
+            const alternatePath = path.join('.', 'gem-viewer', 'src', 'shared_js', correctFilename);
+            console.log('Trying alternate path:', alternatePath);
+            if (fs.existsSync(alternatePath)) {
+                filePath = alternatePath;
+                console.log('Found file at alternate path');
+            }
+        }
     }
 
     // Get the file extension
