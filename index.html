@@ -282,13 +282,7 @@
     </div>
 
     <div id="gem-container">
-        <gem-player 
-            url="/assets/gems/aphex-twin-selected-ambient-works-ii.gem" 
-            artist="Aphex Twin" 
-            album="Selected Ambient Works Volume II" 
-            published="1994 Warp" 
-            style="background-color: #BEC3C9">
-        </gem-player>
+        <!-- Remove the initial gem-player element since we'll create it dynamically -->
     </div>
 
     <script>
@@ -344,6 +338,10 @@
                     console.error('No data found for gem:', gemType);
                     return;
                 }
+
+                // Set initial colors
+                document.body.style.backgroundColor = gemData.bgColor;
+                document.body.style.color = gemData.textColor;
 
                 // Update button states
                 updateButtonStates(gemType);
