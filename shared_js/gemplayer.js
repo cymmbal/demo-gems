@@ -16,6 +16,9 @@ import { ThemeContent } from './themecontent.js';
  */
 export class GemPlayer extends HTMLElement {
 
+    // Static cache for loaded gem files - prevents duplicate downloads
+    static gemCache = {};
+
     // Static constants
     static Constants = {
 
@@ -36,7 +39,7 @@ export class GemPlayer extends HTMLElement {
 		// General timing values
 
 		// Time to wait between when the scene starts and when the fade-in starts in milliseconds
-        FADE_IN_DELAY: 300,
+        FADE_IN_DELAY: 100,
 
 		// Time to wait to commit browser resize to layout values in milliseconds
         DEBOUNCE_DELAY: 100,
@@ -68,7 +71,7 @@ export class GemPlayer extends HTMLElement {
 		// DriftControl values
 
 		// Maximum rotation amount in all directions for drift contro, in degrees
-		MAX_ROTATION_DRIFT: 5,
+		MAX_ROTATION_DRIFT: 8,
 
 		// Whether to invert the direction of drift control
 		INVERT_ROTATION_DRIFT: true,
@@ -377,6 +380,8 @@ export class GemPlayer extends HTMLElement {
      */
     async loadScene(url) {
         try {
+            console.log(`Loading Gem file: ${url}`);
+            
             // Remove loaded class before reloading
             this.canvas.classList.remove('loaded');
             
@@ -396,8 +401,20 @@ export class GemPlayer extends HTMLElement {
                 this.checkFadeInConditions();
             }, GemPlayer.Constants.FADE_IN_DELAY);
             
-            console.log(`Loading Gem file: ${url}`);
-            await this.spline.load(url);
+            // Check if this gem is already in the static cache
+            if (GemPlayer.gemCache[url]) {
+                console.log(`Using cached gem data for: ${url}`);
+                // Use the cached gem
+                await this.spline.load(url);
+            } else {
+                // First time loading this gem, add to cache after loading
+                console.log(`First time loading gem: ${url}`);
+                const startTime = performance.now();
+                await this.spline.load(url);
+                const loadTime = performance.now() - startTime;
+                console.log(`Gem loaded in ${loadTime.toFixed(2)}ms, adding to cache: ${url}`);
+                GemPlayer.gemCache[url] = true;
+            }
             
             // Apply current background color from CSS
             const bgColor = getComputedStyle(this).backgroundColor;
@@ -439,6 +456,11 @@ export class GemPlayer extends HTMLElement {
             
         } catch (error) {
             console.error('Error loading Gem file:', error);
+            this.dispatchEvent(new CustomEvent('sceneerror', { 
+                detail: { error },
+                bubbles: true,
+                composed: true
+            }));
         }
     }
 

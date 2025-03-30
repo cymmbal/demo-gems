@@ -2,6 +2,33 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+// Add a file cache to store loaded gem files
+const fileCache = {};
+
+// Preload gem files to ensure consistent performance
+function preloadGemFiles() {
+    const gemFiles = [
+        // Load WARP21 first as it's the default/most frequently accessed gem
+        './assets/gems/aphex-twin-selected-ambient-works-ii.gem',
+        './assets/gems/flying-lotus-cosmogramma.gem',
+        './assets/gems/one-oh-trix-point-never-magic-otp.gem'
+    ];
+    
+    gemFiles.forEach(filePath => {
+        try {
+            console.log('Preloading gem file:', filePath);
+            const content = fs.readFileSync(filePath);
+            fileCache[filePath] = content;
+            console.log('Successfully cached:', filePath, `(${content.length} bytes)`);
+        } catch (error) {
+            console.error('Error preloading gem file:', filePath, error);
+        }
+    });
+}
+
+// Preload gem files at startup
+preloadGemFiles();
+
 const mimeTypes = {
     '.html': 'text/html',
     '.js': 'text/javascript',
@@ -12,7 +39,9 @@ const mimeTypes = {
 };
 
 const server = http.createServer((req, res) => {
-    console.log('Request:', req.url);
+    // Log the request with timestamp
+    const timestamp = new Date().toISOString().slice(11, 23);
+    console.log(`[${timestamp}] Request:`, req.url);
 
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -54,6 +83,25 @@ const server = http.createServer((req, res) => {
     const extname = path.extname(filePath);
     const contentType = mimeTypes[extname] || 'application/octet-stream';
 
+    // Special handling for gem files - prioritize cached versions
+    if (extname === '.gem') {
+        // Check if this file is in cache
+        if (fileCache[filePath]) {
+            console.log(`[${timestamp}] Serving cached gem file:`, filePath, `(${fileCache[filePath].length} bytes)`);
+            res.writeHead(200, { 'Content-Type': contentType });
+            res.end(fileCache[filePath]);
+            return;
+        }
+    }
+    
+    // Check if any file is in cache
+    if (fileCache[filePath]) {
+        console.log(`[${timestamp}] Serving cached file:`, filePath);
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(fileCache[filePath]);
+        return;
+    }
+
     // Read and serve the file
     console.log('Serving static file:', filePath, 'Content-Type:', contentType);
     fs.readFile(filePath, (error, content) => {
@@ -67,6 +115,15 @@ const server = http.createServer((req, res) => {
                 res.end('Server error');
             }
         } else {
+            // Cache gem files and other large resources
+            const isGemFile = extname === '.gem';
+            const isImportantResource = isGemFile || filePath.includes('runtime.js');
+            
+            if (isImportantResource) {
+                console.log(`Caching file: ${filePath} (${content.length} bytes)`);
+                fileCache[filePath] = content;
+            }
+            
             res.writeHead(200, { 'Content-Type': contentType });
             res.end(content, 'utf-8');
         }

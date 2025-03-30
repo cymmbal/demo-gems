@@ -318,6 +318,11 @@
             const buttons = document.querySelectorAll('.gem-button');
             const transitionOverlay = document.querySelector('.transition-overlay');
             
+            // Create an object to cache loaded gem content
+            const gemCache = {};
+            // Flag to prevent multiple simultaneous transitions
+            let isTransitioning = false;
+            
             // Function to update button states
             function updateButtonStates(activeGem) {
                 buttons.forEach(btn => {
@@ -343,8 +348,27 @@
 
                 // Store the selected gem type
                 localStorage.setItem('selectedGem', gemType);
+                
+                // Update URL based on gem type
+                const urlMap = {
+                    'aphex-twin': '/warp/21',
+                    'flying-lotus': '/warp/195',
+                    'oneohtrix': '/warp/318'
+                };
+                const newUrl = urlMap[gemType];
+                if (newUrl) {
+                    window.history.pushState({gemType: gemType}, '', newUrl);
+                }
 
-                // Update gem player
+                // Set body text color and background 
+                // These are set first on initial load (no transition)
+                document.body.style.backgroundColor = gemData.bgColor;
+                document.body.style.color = gemData.textColor;
+                
+                // Prepare the transition overlay but keep it hidden initially
+                transitionOverlay.style.backgroundColor = gemData.bgColor;
+                
+                // Create a new gem-player element immediately
                 const container = document.getElementById('gem-container');
                 container.innerHTML = `
                     <gem-player 
@@ -355,8 +379,8 @@
                         style="background-color: ${gemData.bgColor}">
                     </gem-player>
                 `;
-
-                // Add error event listener to the new gem-player
+                
+                // No need to fade in since this is the initial load
                 const player = container.querySelector('gem-player');
                 if (player) {
                     player.addEventListener('sceneerror', (event) => {
@@ -367,12 +391,28 @@
 
             // Function to switch gems with transition animation
             async function switchGem(gemType) {
+                // Prevent rapid switching
+                if (isTransitioning) {
+                    console.log('Already transitioning, ignoring switch request');
+                    return;
+                }
+                
+                // Check if we're already on this gem type
+                const currentGemType = localStorage.getItem('selectedGem');
+                if (currentGemType === gemType) {
+                    console.log('Already showing gem:', gemType);
+                    return;
+                }
+                
                 console.log('Switching to gem:', gemType);
                 const gemData = gems[gemType];
                 if (!gemData) {
                     console.error('No data found for gem:', gemType);
                     return;
                 }
+                
+                // Set transitioning flag
+                isTransitioning = true;
 
                 // Update button states
                 updateButtonStates(gemType);
@@ -388,7 +428,7 @@
                 };
                 const newUrl = urlMap[gemType];
                 if (newUrl) {
-                    window.history.pushState({}, '', newUrl);
+                    window.history.pushState({gemType: gemType}, '', newUrl);
                     // Track page view in Mixpanel when URL changes
                     mixpanel.track('Page View', {
                         'page': newUrl,
@@ -397,30 +437,57 @@
                     });
                 }
                 
+                // Start loading the gem file in advance
+                if (!gemCache[gemType]) {
+                    // Attempt to preload the gem
+                    console.log('Preloading gem:', gemData.url);
+                    try {
+                        const preloadLink = document.createElement('link');
+                        preloadLink.rel = 'preload';
+                        preloadLink.href = gemData.url;
+                        preloadLink.as = 'fetch';
+                        document.head.appendChild(preloadLink);
+                    } catch (e) {
+                        console.warn('Preloading not supported:', e);
+                    }
+                }
+                
                 // Get the current gem-player
                 const currentPlayer = document.querySelector('gem-player');
                 if (!currentPlayer) {
                     console.error('No gem-player found');
+                    isTransitioning = false;
                     return;
                 }
                 
                 // Set overlay to match the new background color
                 transitionOverlay.style.backgroundColor = gemData.bgColor;
-                document.body.style.backgroundColor = gemData.bgColor;
-                document.body.style.color = gemData.textColor;
+                
+                // DO NOT change text color until after transition
+                // document.body.style.color = gemData.textColor;
                 
                 // Fade out current content
                 currentPlayer.classList.add('fade-out');
                 transitionOverlay.classList.add('active');
 
                 // Wait for fade out
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, 350));
+
+                // Now it's safe to change background and text colors
+                document.body.style.backgroundColor = gemData.bgColor;
+                document.body.style.color = gemData.textColor;
 
                 // Clean up any existing text overlays
                 const existingOverlays = document.querySelectorAll('.text-overlay');
                 existingOverlays.forEach(overlay => overlay.remove());
 
                 try {
+                    // Important: Remove the old player first and wait a moment for cleanup
+                    document.getElementById('gem-container').innerHTML = '';
+                    
+                    // Wait a short moment to ensure proper cleanup
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    
                     // Create a new gem-player element
                     const container = document.getElementById('gem-container');
                     container.innerHTML = `
@@ -436,20 +503,32 @@
                     // Add error event listener to the new gem-player
                     const player = container.querySelector('gem-player');
                     if (player) {
+                        // Store this player in the cache
+                        gemCache[gemType] = true;
+                        
                         player.addEventListener('sceneerror', (event) => {
                             console.error('Scene error:', event.detail.error);
+                            isTransitioning = false;
+                        });
+                        
+                        // When the scene is loaded, fade in content and clear transitioning flag
+                        player.addEventListener('sceneloaded', () => {
+                            // Wait a brief moment for the new content to initialize
+                            setTimeout(() => {
+                                // Fade in new content
+                                transitionOverlay.classList.remove('active');
+                                player.classList.remove('fade-out');
+                                
+                                // Clear transitioning flag
+                                isTransitioning = false;
+                                console.log('Transition complete to:', gemType);
+                            }, 200);
                         });
                     }
-                    
-                    // Wait a brief moment for the new content to initialize
-                    await new Promise(resolve => setTimeout(resolve, 200));
-
-                    // Fade in new content
-                    transitionOverlay.classList.remove('active');
-                    player.classList.remove('fade-out');
                 } catch (error) {
                     console.error('Error switching gem:', error);
                     transitionOverlay.classList.remove('active');
+                    isTransitioning = false;
                 }
             }
 
@@ -464,13 +543,21 @@
                     };
                     return numberMap[match[1]] || 'aphex-twin';
                 }
+                
+                // If we're at the root path, explicitly use Aphex Twin
+                if (window.location.pathname === '/') {
+                    return 'aphex-twin';
+                }
+                
                 return 'aphex-twin';
             }
 
             // Initialize with URL-based gem or default to aphex-twin
             const initialGem = getInitialGemType();
             console.log('Initial gem from URL:', initialGem);
-            initializeGem(initialGem);  // Use the non-animated initialization
+            
+            // Use initializeGem for the first load - it's faster and doesn't need transitions
+            initializeGem(initialGem);
             
             // Add click handlers to buttons
             buttons.forEach(button => {
@@ -479,6 +566,19 @@
                     console.log('Button clicked, switching to gem:', gemType);
                     switchGem(gemType);  // Use the animated transition for clicks
                 });
+            });
+            
+            // Add popstate event listener to handle browser back/forward buttons
+            window.addEventListener('popstate', function(event) {
+                console.log('popstate event triggered', event.state);
+                // If we have state data with gemType, use that
+                if (event.state && event.state.gemType) {
+                    switchGem(event.state.gemType);
+                } else {
+                    // Otherwise, try to determine the gem type from the URL
+                    const gemType = getInitialGemType();
+                    switchGem(gemType);
+                }
             });
         });
     </script>
