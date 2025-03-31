@@ -18,6 +18,8 @@ export class DriftControl {
         this._motionHandler = null;
         this._orientationHandler = null;
         this._permissionOverlay = null;
+        this._motionDetectionTimer = null;
+        this._motionDetected = false;
         
         // Motion control state
         this.initialOrientation = null;
@@ -108,16 +110,21 @@ export class DriftControl {
     init() {
         if (this.isIOS || /Android/i.test(navigator.userAgent)) {
             if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
+                // iOS 13+ requires permission
                 if (!this.hasMotionPermission) {
                     console.log('Showing permission overlay - no permission yet');
                     this.createPermissionOverlay();
                 } else {
-                    console.log('Permission already granted, initializing orientation handler');
+                    console.log('Permission previously granted, initializing orientation handler');
                     this.initOrientationHandler();
+                    // Check if motion is actually working even though permission was granted
+                    this.testMotionData();
                 }
             } else {
                 console.log('No permission needed, initializing orientation handler directly');
                 this.initOrientationHandler();
+                // Check if motion is actually working on non-permission devices
+                this.testMotionData();
             }
 
             // Listen for screen orientation changes
@@ -139,6 +146,30 @@ export class DriftControl {
     }
 
     /**
+     * Test if motion data is actually being received
+     */
+    testMotionData() {
+        // Clear any existing timer
+        if (this._motionDetectionTimer) {
+            clearTimeout(this._motionDetectionTimer);
+        }
+        
+        // Reset detection flag
+        this._motionDetected = false;
+        
+        // Set up a timer to check if motion is detected within 2 seconds
+        this._motionDetectionTimer = setTimeout(() => {
+            if (!this._motionDetected) {
+                console.log('No motion data detected, showing permission overlay');
+                // No motion detected after timeout, show the overlay
+                localStorage.removeItem('motionPermissionGranted');
+                this.hasMotionPermission = false;
+                this.createPermissionOverlay();
+            }
+        }, 2000);
+    }
+
+    /**
      * Create and show permission overlay
      */
     createPermissionOverlay() {
@@ -151,12 +182,23 @@ export class DriftControl {
 
         const requestMotionPermission = async () => {
             try {
-                const permissionState = await DeviceOrientationEvent.requestPermission();
-                console.log('Permission response:', permissionState);
-                if (permissionState === 'granted') {
+                if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
+                    const permissionState = await DeviceOrientationEvent.requestPermission();
+                    console.log('Permission response:', permissionState);
+                    if (permissionState === 'granted') {
+                        localStorage.setItem('motionPermissionGranted', 'true');
+                        this.hasMotionPermission = true;
+                        this.initOrientationHandler();
+                        // Test if motion is actually working after permission
+                        this.testMotionData();
+                    }
+                } else {
+                    // For devices that don't require explicit permission
                     localStorage.setItem('motionPermissionGranted', 'true');
                     this.hasMotionPermission = true;
                     this.initOrientationHandler();
+                    // Test if motion is actually working
+                    this.testMotionData();
                 }
             } catch (error) {
                 console.error('Error requesting motion permission:', error);
@@ -195,6 +237,9 @@ export class DriftControl {
             // Get orientation data
             const { beta, gamma } = e;
             if (beta === null || gamma === null) return;
+            
+            // Mark that motion data has been detected
+            this._motionDetected = true;
             
             // Initialize reference orientation if needed
             if (!this.initialOrientation) {
@@ -242,6 +287,12 @@ export class DriftControl {
         }
 
         window.removeEventListener('orientationchange', this._orientationChangeHandler);
+        
+        // Clear motion detection timer
+        if (this._motionDetectionTimer) {
+            clearTimeout(this._motionDetectionTimer);
+            this._motionDetectionTimer = null;
+        }
     }
 
     /**
