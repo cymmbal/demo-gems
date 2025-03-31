@@ -83,12 +83,30 @@ const server = http.createServer((req, res) => {
     const extname = path.extname(filePath);
     const contentType = mimeTypes[extname] || 'application/octet-stream';
 
+    // Set up response headers with caching directives
+    const headers = { 'Content-Type': contentType };
+    
+    // Add aggressive caching for gem files and JS files
+    if (extname === '.gem') {
+        // Cache gem files for 1 year (31536000 seconds)
+        headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+        headers['Expires'] = new Date(Date.now() + 31536000 * 1000).toUTCString();
+        headers['ETag'] = `"${path.basename(filePath)}-v1"`; // Simple ETag
+    } else if (extname === '.js') {
+        // Cache JS files for 1 week (604800 seconds)
+        headers['Cache-Control'] = 'public, max-age=604800';
+        headers['Expires'] = new Date(Date.now() + 604800 * 1000).toUTCString();
+    } else {
+        // Short cache for other files
+        headers['Cache-Control'] = 'public, max-age=3600'; // 1 hour
+    }
+
     // Special handling for gem files - prioritize cached versions
     if (extname === '.gem') {
         // Check if this file is in cache
         if (fileCache[filePath]) {
             console.log(`[${timestamp}] Serving cached gem file:`, filePath, `(${fileCache[filePath].length} bytes)`);
-            res.writeHead(200, { 'Content-Type': contentType });
+            res.writeHead(200, headers);
             res.end(fileCache[filePath]);
             return;
         }
@@ -97,7 +115,7 @@ const server = http.createServer((req, res) => {
     // Check if any file is in cache
     if (fileCache[filePath]) {
         console.log(`[${timestamp}] Serving cached file:`, filePath);
-        res.writeHead(200, { 'Content-Type': contentType });
+        res.writeHead(200, headers);
         res.end(fileCache[filePath]);
         return;
     }
@@ -124,7 +142,7 @@ const server = http.createServer((req, res) => {
                 fileCache[filePath] = content;
             }
             
-            res.writeHead(200, { 'Content-Type': contentType });
+            res.writeHead(200, headers);
             res.end(content, 'utf-8');
         }
     });
