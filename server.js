@@ -38,6 +38,15 @@ const mimeTypes = {
     '.png': 'image/png'
 };
 
+// Add Date.now() as a query parameter to bust caches
+function processTemplate(content, contentType) {
+  if (contentType === 'text/html') {
+    // Simple template processing for cache busting
+    return content.replace(/<%=Date\.now\(\)%>/g, Date.now());
+  }
+  return content;
+}
+
 const server = http.createServer((req, res) => {
     // Log the request with timestamp
     const timestamp = new Date().toISOString().slice(11, 23);
@@ -61,6 +70,9 @@ const server = http.createServer((req, res) => {
     if (!req.url.endsWith('.html')) {
         filePath = '.' + req.url.replace(/^\/warp\//, '/');
     }
+
+    // Remove any query parameters from the file path
+    filePath = filePath.split('?')[0];
     
     // Special handling for shared_js files
     if (filePath.includes('/shared_js/')) {
@@ -91,6 +103,16 @@ const server = http.createServer((req, res) => {
         headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0';
         headers['Pragma'] = 'no-cache';
         headers['Expires'] = '0';
+        
+        // Force rewriting the URL with a cache-busting parameter
+        if (req.url.indexOf('?') === -1) {
+            const cacheBuster = Date.now();
+            const newUrl = `${req.url}?v=${cacheBuster}`;
+            console.log(`Redirecting JS request to: ${newUrl}`);
+            res.writeHead(302, { 'Location': newUrl });
+            res.end();
+            return;
+        }
     } else if (extname === '.gem') {
         // Cache gem files for 1 year (31536000 seconds)
         headers['Cache-Control'] = 'public, max-age=31536000, immutable';
@@ -122,30 +144,46 @@ const server = http.createServer((req, res) => {
 
     // Read and serve the file
     console.log('Serving static file:', filePath, 'Content-Type:', contentType);
-    fs.readFile(filePath, (error, content) => {
-        if (error) {
-            console.error('Error reading file:', filePath, error);
-            if(error.code == 'ENOENT') {
-                res.writeHead(404);
-                res.end('File not found');
-            } else {
+
+    // Handle HTML files with template processing
+    if (contentType === 'text/html') {
+        fs.readFile(filePath, 'utf8', (err, data) => {
+            if (err) {
+                console.error(`Error reading file ${filePath}: ${err.message}`);
                 res.writeHead(500);
-                res.end('Server error');
+                res.end(`Server Error: Unable to read file ${filePath}`);
+                return;
             }
-        } else {
+
+            // Process template tags in HTML files
+            const processedData = processTemplate(data, contentType);
+            
+            res.writeHead(200, headers);
+            res.end(processedData);
+        });
+    } else {
+        // For binary files and other non-HTML content
+        fs.readFile(filePath, (err, data) => {
+            if (err) {
+                console.error(`Error reading file ${filePath}: ${err.message}`);
+                res.writeHead(500);
+                res.end(`Server Error: Unable to read file ${filePath}`);
+                return;
+            }
+            
             // Cache gem files and other large resources
             const isGemFile = extname === '.gem';
             const isImportantResource = isGemFile || filePath.includes('runtime.js');
             
             if (isImportantResource) {
-                console.log(`Caching file: ${filePath} (${content.length} bytes)`);
-                fileCache[filePath] = content;
+                console.log(`Caching file: ${filePath} (${data.length} bytes)`);
+                fileCache[filePath] = data;
             }
             
             res.writeHead(200, headers);
-            res.end(content, 'utf-8');
-        }
-    });
+            res.end(data);
+        });
+    }
 });
 
 // Use PORT from environment variable or fallback to 8000

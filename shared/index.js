@@ -1,5 +1,5 @@
 // Import GemPlayer class to ensure it's registered
-import { GemPlayer } from '../shared_js/gemplayer.js';
+import { GemPlayer } from '../shared_js/gemplayer_new.js';
 import { Router } from '../shared_js/router.js';
 import { CameraViewModel } from '../shared_js/cameraviewmodel.js';
 import { ViewState } from '../shared_js/viewstate.js';
