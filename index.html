@@ -274,6 +274,11 @@
     </style>
 </head>
 <body>
+    <!-- 
+        Performance note: The Aphex Twin gem file (WARP21) is significantly larger (9.5MB) 
+        than the other gem files (Flying Lotus: 3.1MB, Oneohtrix: 1.9MB).
+        This larger file size causes a slightly longer loading time when switching to WARP21.
+    -->
     <div class="transition-overlay"></div>
     <div class="gem-buttons">
         <button class="gem-button" data-gem="aphex-twin">WARP21</button>
@@ -437,9 +442,8 @@
                     });
                 }
                 
-                // Start loading the gem file in advance
+                // Attempt to preload the gem file in advance
                 if (!gemCache[gemType]) {
-                    // Attempt to preload the gem
                     console.log('Preloading gem:', gemData.url);
                     try {
                         const preloadLink = document.createElement('link');
@@ -485,7 +489,7 @@
                     // Important: Remove the old player first and wait a moment for cleanup
                     document.getElementById('gem-container').innerHTML = '';
                     
-                    // Wait a short moment to ensure proper cleanup
+                    // Wait a moment to ensure proper cleanup
                     await new Promise(resolve => setTimeout(resolve, 50));
                     
                     // Create a new gem-player element
@@ -500,12 +504,12 @@
                         </gem-player>
                     `;
 
+                    // Store that we've loaded this gem before
+                    gemCache[gemType] = true;
+                    
                     // Add error event listener to the new gem-player
                     const player = container.querySelector('gem-player');
                     if (player) {
-                        // Store this player in the cache
-                        gemCache[gemType] = true;
-                        
                         player.addEventListener('sceneerror', (event) => {
                             console.error('Scene error:', event.detail.error);
                             isTransitioning = false;
