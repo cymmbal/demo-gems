@@ -8,15 +8,15 @@ export class DriftControl {
         // More comprehensive iOS detection
         this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         
-        // Force a higher value and log it
-        console.log('DriftControl constructor received options:', options);
-        
+        // CRITICAL UPDATE: Always use 15 degrees, completely ignore the passed options
+        // This version was updated on: March 31, 2024
         this.options = {
-            maxRotationDrift: options.maxRotationDrift || 15, // Default to 15 if not provided
+            // Hardcode to 15 degrees, completely ignoring any options
+            maxRotationDrift: 15,
             invertRotationDrift: options.invertRotationDrift || false
         };
         
-        console.log('DriftControl initialized with maxRotationDrift:', this.options.maxRotationDrift);
+        console.log('UPDATED DRIFTCONTROL.JS - Using fixed 15 degree rotation');
 
         this.enabled = true;
         this._driftHandler = null;
