@@ -86,16 +86,16 @@ const server = http.createServer((req, res) => {
     // Set up response headers with caching directives
     const headers = { 'Content-Type': contentType };
     
-    // Add aggressive caching for gem files and JS files
-    if (extname === '.gem') {
+    // Disable caching for JS files for easier testing in local development
+    if (extname === '.js') {
+        headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0';
+        headers['Pragma'] = 'no-cache';
+        headers['Expires'] = '0';
+    } else if (extname === '.gem') {
         // Cache gem files for 1 year (31536000 seconds)
         headers['Cache-Control'] = 'public, max-age=31536000, immutable';
         headers['Expires'] = new Date(Date.now() + 31536000 * 1000).toUTCString();
         headers['ETag'] = `"${path.basename(filePath)}-v1"`; // Simple ETag
-    } else if (extname === '.js') {
-        // Cache JS files for 1 week (604800 seconds)
-        headers['Cache-Control'] = 'public, max-age=604800';
-        headers['Expires'] = new Date(Date.now() + 604800 * 1000).toUTCString();
     } else {
         // Short cache for other files
         headers['Cache-Control'] = 'public, max-age=3600'; // 1 hour

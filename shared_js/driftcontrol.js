@@ -9,7 +9,7 @@ export class DriftControl {
         this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         
         this.options = {
-            maxRotationDrift: 5, // 5 degrees for all devices
+            maxRotationDrift: options.maxRotationDrift || 5, // Use passed value instead of hardcoding
             invertRotationDrift: options.invertRotationDrift || false
         };
 
