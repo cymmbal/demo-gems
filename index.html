@@ -85,12 +85,13 @@
             transform: translateX(-50%);
             z-index: 30;
             display: flex;
+            flex-direction: column;
             gap: 10px;
             padding: 10px;
             pointer-events: none; /* Allow clicks to pass through the container */
             width: 100%;
             max-width: 500px;
-            justify-content: center;
+            align-items: center;
         }
 
         .gem-button {
@@ -116,42 +117,37 @@
             letter-spacing: 0.04em;
         }
 
-        /* Mobile styles */
-        @media (max-width: 480px) {
-            .gem-buttons {
-                padding: 8px;
-                gap: 6px;
-                bottom: calc(env(safe-area-inset-bottom, 10px) + 20px);
-            }
-
-            .gem-button {
-                padding: 6px 8px;
-                font-size: 0.85em;
-                width: auto;
-                min-width: 80px;
-                letter-spacing: 0.02em;
-            }
-
-            .published {
-                display: none;
-            }
+        /* Wrapper for WARP buttons to be in a row */
+        .gem-buttons > .gem-button {
+            display: inline-block;
+            margin: 0 5px;
         }
 
-        /* Small mobile styles */
-        @media (max-width: 360px) {
-            .gem-buttons {
-                padding: 6px;
-                gap: 4px;
-                bottom: calc(env(safe-area-inset-bottom, 10px) + 50px);
-            }
-
-            .gem-button {
-                padding: 5px 6px;
-                font-size: 0.8em;
-                min-width: 70px;
-            }
+        /* Info button styling */
+        .info-button {
+            font-family: "Poppins", Helvetica, Arial, sans-serif;
+            font-size: 0.95em;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.99);
+            text-decoration: none;
+            text-align: center;
+            pointer-events: auto;
+            transition: all 0.3s ease;
+            opacity: 0.95;
+            letter-spacing: 0.04em;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
         }
 
+        .info-button:hover {
+            color: rgba(255, 255, 255, 0.99);
+            opacity: 0.9;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+        }
+
+        .info-link-wrapper {
+            margin-top: 5px;
+        }
+        
         .gem-button:hover {
             background-color: rgba(0, 0, 0, 0.25);
             opacity: 0.9;
@@ -288,6 +284,51 @@
             opacity: 1;
         }
 
+        /* Mobile styles */
+        @media (max-width: 480px) {
+            .gem-buttons {
+                padding: 8px;
+                gap: 6px;
+                bottom: calc(env(safe-area-inset-bottom, 10px) + 20px);
+            }
+
+            .gem-button {
+                padding: 6px 8px;
+                font-size: 0.85em;
+                width: auto;
+                min-width: 80px;
+                letter-spacing: 0.02em;
+            }
+            
+            .info-button {
+                font-size: 0.9em;
+                letter-spacing: 0.02em;
+            }
+
+            .published {
+                display: none;
+            }
+        }
+
+        /* Small mobile styles */
+        @media (max-width: 360px) {
+            .gem-buttons {
+                padding: 6px;
+                gap: 4px;
+                bottom: calc(env(safe-area-inset-bottom, 10px) + 50px);
+            }
+
+            .gem-button {
+                padding: 5px 6px;
+                font-size: 0.8em;
+                min-width: 70px;
+            }
+            
+            .info-button {
+                font-size: 0.8em;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -298,9 +339,14 @@
     -->
     <div class="transition-overlay"></div>
     <div class="gem-buttons">
-        <button class="gem-button" data-gem="aphex-twin">WARP21</button>
-        <button class="gem-button" data-gem="flying-lotus">WARP195</button>
-        <button class="gem-button" data-gem="oneohtrix">WARP318</button>
+        <div class="warp-buttons-row" style="display: flex; gap: 10px; justify-content: center; width: 100%;">
+            <button class="gem-button" data-gem="aphex-twin">WARP21</button>
+            <button class="gem-button" data-gem="flying-lotus">WARP195</button>
+            <button class="gem-button" data-gem="oneohtrix">WARP318</button>
+        </div>
+        <div class="info-link-wrapper" style="width: 100%; display: flex; justify-content: center; margin-top: 10px;">
+            <a href="https://atcq.gems.fan" target="_blank" class="info-button">How do Gems work?</a>
+        </div>
     </div>
 
     <div id="gem-container">
