@@ -188,9 +188,9 @@ export class DriftControl {
         const requestMotionPermission = async () => {
             try {
                 if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
-                    const permissionState = await DeviceOrientationEvent.requestPermission();
-                    console.log('Permission response:', permissionState);
-                    if (permissionState === 'granted') {
+                const permissionState = await DeviceOrientationEvent.requestPermission();
+                console.log('Permission response:', permissionState);
+                if (permissionState === 'granted') {
                         localStorage.setItem('motionPermissionGranted', 'true');
                         this.hasMotionPermission = true;
                         this.initOrientationHandler();

@@ -161,7 +161,7 @@ const server = http.createServer((req, res) => {
             res.writeHead(200, headers);
             res.end(processedData);
         });
-    } else {
+            } else {
         // For binary files and other non-HTML content
         fs.readFile(filePath, (err, data) => {
             if (err) {
@@ -182,7 +182,7 @@ const server = http.createServer((req, res) => {
             
             res.writeHead(200, headers);
             res.end(data);
-        });
+    });
     }
 });
 
