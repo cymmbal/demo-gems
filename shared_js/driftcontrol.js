@@ -29,7 +29,7 @@ export class DriftControl {
         // Motion control state
         this.initialOrientation = null;
         this.maxRotationAngle = 45; // Maximum physical device rotation to map to maxRotationDrift
-        this.hasMotionPermission = localStorage.getItem('motionPermissionGranted') === 'true';
+        this.hasMotionPermission = true; // Always set to true to skip permission
         this.screenOrientation = window.orientation || 0;
 
         // Orbit control state for desktop
@@ -113,41 +113,15 @@ export class DriftControl {
      * Initialize drift control
      */
     init() {
-        if (this.isIOS || /Android/i.test(navigator.userAgent)) {
-            if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
-                // iOS 13+ requires permission
-                if (!this.hasMotionPermission) {
-                    console.log('Showing permission overlay - no permission yet');
-                    this.createPermissionOverlay();
-                } else {
-                    console.log('Permission previously granted, initializing orientation handler');
-                    this.initOrientationHandler();
-                    // Check if motion is actually working even though permission was granted
-                    this.testMotionData();
-                }
-            } else {
-                console.log('No permission needed, initializing orientation handler directly');
-                this.initOrientationHandler();
-                // Check if motion is actually working on non-permission devices
-                this.testMotionData();
+        // Create bound handler that we can reference later for cleanup
+        this._driftHandler = (e) => {
+            if (this.enabled) {
+                this.apply(e.clientX, e.clientY);
             }
+        };
 
-            // Listen for screen orientation changes
-            window.addEventListener('orientationchange', () => {
-                this.screenOrientation = window.orientation || 0;
-                this.initialOrientation = null; // Reset calibration on orientation change
-            });
-        } else {
-            // Create bound handler that we can reference later for cleanup
-            this._driftHandler = (e) => {
-                if (this.enabled) {
-                    this.apply(e.clientX, e.clientY);
-                }
-            };
-
-            // Bind the handler
-            this.canvas.addEventListener('pointermove', this._driftHandler);
-        }
+        // Bind the handler
+        this.canvas.addEventListener('pointermove', this._driftHandler);
     }
 
     /**

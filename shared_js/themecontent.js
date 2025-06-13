@@ -14,18 +14,6 @@ export class ThemeContent {
         this.published = document.createElement('div');
         this.published.className = 'published';
         
-        // Create panel overlay
-        this.panelOverlay = document.createElement('div');
-        this.panelOverlay.id = 'panel-overlay';
-        
-        // Create TAP text with kerning
-		this.panelOverlay.appendChild(document.createTextNode('('));
-        const tapText = document.createElement('span');
-        tapText.className = 'kern-pair';
-        tapText.textContent = 'T';
-        this.panelOverlay.appendChild(tapText);
-        this.panelOverlay.appendChild(document.createTextNode('AP)'));
-        
         // Assemble elements
         this.textOverlay.appendChild(this.artistName);
         this.textOverlay.appendChild(this.albumTitle);
@@ -33,7 +21,6 @@ export class ThemeContent {
         
         // Add elements to document
         document.body.appendChild(this.textOverlay);
-        document.body.appendChild(this.panelOverlay);
     }
 
     /**
@@ -59,9 +46,6 @@ export class ThemeContent {
     cleanup() {
         if (this.textOverlay && this.textOverlay.parentNode) {
             this.textOverlay.parentNode.removeChild(this.textOverlay);
-        }
-        if (this.panelOverlay && this.panelOverlay.parentNode) {
-            this.panelOverlay.parentNode.removeChild(this.panelOverlay);
         }
     }
 } 
